@@ -1,0 +1,30 @@
+# Python bytecode & virtual environment
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+venv/
+env/
+ENV/
+
+# Environment configuration & secrets
+.env
+
+# Database file
+*.db
+*.sqlite
+*.sqlite3
+vyapar_mithra.db
+
+# User uploaded files
+uploads/*
+!uploads/.gitkeep
+
+# Logs
+*.log
+
+# OS / Editor files
+.DS_Store
+.vscode/
+.idea/

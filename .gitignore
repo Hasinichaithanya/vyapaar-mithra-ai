@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+frontend/node_modules/
+
+# Production build outputs
+dist/
+build/
+frontend/dist/
+frontend/build/
+.vite/
+
+# Python bytecode & cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+htmlcov/
+backend/app/__pycache__/
+
+# Environments & Secrets
+.env
+.env.local
+.env.*.local
+backend/.env
+venv/
+env/
+ENV/
+
+# SQLite Database & Uploads
+*.db
+*.sqlite
+*.sqlite3
+backend/vyapar_mithra.db
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# IDEs & System files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.log
