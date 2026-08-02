@@ -7,6 +7,7 @@ from ..database import get_db
 from ..models import Bill, BillItem
 from ..schemas import BillResponse, BillCreate
 from ..services import ai_service
+from ..services.bill_service import find_duplicate_bill, hash_file_contents
 from ..config import UPLOADS_DIR
 
 router = APIRouter(prefix="/api/bills", tags=["Smart Bill Scanner & Investment Ledger"])
@@ -21,6 +22,23 @@ async def scan_bill_image(file: UploadFile = File(...), db: Session = Depends(ge
     filepath = os.path.join(UPLOADS_DIR, filename)
 
     contents = await file.read()
+    content_hash = hash_file_contents(contents)
+
+    existing_by_hash = db.query(Bill).filter(Bill.content_hash == content_hash).first()
+    if existing_by_hash:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "error": "duplicate_bill",
+                "message": (
+                    f"This bill has already been read and is saved in your ledger "
+                    f"(Supplier: {existing_by_hash.supplier_name}, Date: {existing_by_hash.purchase_date}, "
+                    f"Total: Rs {existing_by_hash.total_amount:,.0f})."
+                ),
+                "existing_bill_id": existing_by_hash.id,
+            },
+        )
+
     with open(filepath, "wb") as f:
         f.write(contents)
 
@@ -54,11 +72,28 @@ async def scan_bill_image(file: UploadFile = File(...), db: Session = Depends(ge
             },
         )
 
+    existing_bill = find_duplicate_bill(db, content_hash, extracted)
+    if existing_bill:
+        os.remove(filepath)
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "error": "duplicate_bill",
+                "message": (
+                    f"This bill has already been read and is saved in your ledger "
+                    f"(Supplier: {existing_bill.supplier_name}, Date: {existing_bill.purchase_date}, "
+                    f"Total: Rs {existing_bill.total_amount:,.0f})."
+                ),
+                "existing_bill_id": existing_bill.id,
+            },
+        )
+
     bill = Bill(
         supplier_name=extracted.get("supplier_name", "Metro Cash & Carry"),
         purchase_date=extracted.get("purchase_date", "2026-08-01"),
         total_amount=float(extracted.get("total_amount", 0.0)),
         image_filename=filename,
+        content_hash=content_hash,
         notes="Digitized via Smart Bill Scanner OCR"
     )
     db.add(bill)

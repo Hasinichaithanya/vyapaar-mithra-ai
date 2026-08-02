@@ -11,7 +11,4 @@ def get_demand_forecast(db: Session = Depends(get_db)):
     """
     Returns weekly AI demand predictions, reorder quantities, and stockout risk predictions.
     """
-    res = forecast_engine.generate_demand_forecast(db)
-    # Add dummy ID for response validation schema
-    res["id"] = 1
-    return res
+    return forecast_engine.generate_demand_forecast(db)

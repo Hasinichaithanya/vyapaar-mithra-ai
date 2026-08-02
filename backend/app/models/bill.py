@@ -11,6 +11,7 @@ class Bill(Base):
     purchase_date = Column(String(50), nullable=False)
     total_amount = Column(Float, default=0.0)
     image_filename = Column(String(255), nullable=True)
+    content_hash = Column(String(64), nullable=True, index=True)
     notes = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 

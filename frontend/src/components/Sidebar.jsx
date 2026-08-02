@@ -11,7 +11,7 @@ import {
   PanelLeftClose,
   PanelLeft,
   X,
-  Database
+  // Database
 } from 'lucide-react';
 
 export default function Sidebar({ 
@@ -31,7 +31,7 @@ export default function Sidebar({
     { id: 'forecasting', label: 'AI Forecast', icon: TrendingUp },
     { id: 'market', label: 'Market Intel', icon: MapPin },
     { id: 'assistant', label: 'AI Assistant', icon: Bot },
-    { id: 'datastudio', label: 'AI Data Studio', icon: Database },
+    // { id: 'datastudio', label: 'AI Data Studio', icon: Database },
   ];
 
   const handleTabClick = (tabId) => {
