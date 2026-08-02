@@ -10,6 +10,7 @@ from .api import (
     forecast_router,
     chat_router,
     dashboard_router,
+    seed_router,
 )
 
 # Auto-create SQLite database tables if they do not exist
@@ -40,6 +41,7 @@ app.include_router(inventory_router)
 app.include_router(forecast_router)
 app.include_router(chat_router)
 app.include_router(dashboard_router)
+app.include_router(seed_router)
 
 
 @app.get("/")

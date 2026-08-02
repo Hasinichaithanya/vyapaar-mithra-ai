@@ -30,7 +30,7 @@ def chat_with_assistant(req: ChatRequest, db: Session = Depends(get_db)):
     db.commit()
 
     # Generate response
-    resp = ai_service.answer_assistant_query(req.message, context)
+    resp = ai_service.answer_assistant_query(req.message, context, language=req.language)
 
     # Save assistant response
     analysis_str = resp.get("analysis", "")
