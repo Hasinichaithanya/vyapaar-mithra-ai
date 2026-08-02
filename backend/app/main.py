@@ -1,8 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from sqlalchemy import inspect, text
 from .config import PROJECT_NAME, VERSION, UPLOADS_DIR
-from .database import engine, Base
+from .database import engine, Base, SessionLocal
+from .services.bill_service import backfill_missing_content_hashes
 from .api import (
     business_router,
     bill_router,
@@ -15,6 +17,24 @@ from .api import (
 
 # Auto-create SQLite database tables if they do not exist
 Base.metadata.create_all(bind=engine)
+
+
+def _ensure_bill_content_hash_column() -> None:
+    inspector = inspect(engine)
+    if "bills" not in inspector.get_table_names():
+        return
+    columns = {column["name"] for column in inspector.get_columns("bills")}
+    if "content_hash" not in columns:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE bills ADD COLUMN content_hash VARCHAR(64)"))
+
+
+_ensure_bill_content_hash_column()
+
+with SessionLocal() as db:
+    backfilled = backfill_missing_content_hashes(db, UPLOADS_DIR)
+    if backfilled:
+        print(f"[Startup] Backfilled content_hash for {backfilled} existing bill(s).")
 
 app = FastAPI(
     title=PROJECT_NAME,

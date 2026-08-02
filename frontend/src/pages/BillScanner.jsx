@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api/client';
-import { Upload, Receipt, FileText, CheckCircle, IndianRupee, RefreshCw, Clock, AlertTriangle, XCircle } from 'lucide-react';
+import { Upload, Receipt, FileText, CheckCircle, IndianRupee, RefreshCw, Clock, AlertTriangle, XCircle, Info } from 'lucide-react';
 
 const RECENT_BILLS_LIMIT = 5;
 
@@ -54,7 +54,11 @@ export default function BillScanner() {
     } catch (err) {
       console.error(err);
       setUploadError(err.message || 'Failed to process bill image via AI Vision');
-      setUploadErrorType(err.errorType || (err.status === 503 ? 'ocr_failed' : 'non_business_document'));
+      setUploadErrorType(
+        err.errorType
+        || (err.status === 409 ? 'duplicate_bill' : null)
+        || (err.status === 503 ? 'ocr_failed' : 'non_business_document')
+      );
     } finally {
       setUploading(false);
       e.target.value = '';
@@ -147,15 +151,30 @@ export default function BillScanner() {
           </label>
 
           {uploadError && (
-            <div className={uploadErrorType === 'ocr_failed' ? 'bill-upload-warning' : 'bill-upload-error'}>
+            <div className={
+              uploadErrorType === 'duplicate_bill'
+                ? 'bill-upload-info'
+                : uploadErrorType === 'ocr_failed'
+                  ? 'bill-upload-warning'
+                  : 'bill-upload-error'
+            }>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600, fontSize: '0.9rem' }}>
-                {uploadErrorType === 'ocr_failed' ? <AlertTriangle size={18} /> : <XCircle size={18} />}
-                {uploadErrorType === 'ocr_failed' ? 'Could Not Read Bill' : 'Document Rejected'}
+                {uploadErrorType === 'duplicate_bill' ? <Info size={18} /> : uploadErrorType === 'ocr_failed' ? <AlertTriangle size={18} /> : <XCircle size={18} />}
+                {uploadErrorType === 'duplicate_bill'
+                  ? 'Bill Already in Ledger'
+                  : uploadErrorType === 'ocr_failed'
+                    ? 'Could Not Read Bill'
+                    : 'Document Rejected'}
               </div>
               <p style={{ fontSize: '0.85rem', marginTop: '0.4rem', marginBottom: 0, lineHeight: 1.5 }}>
                 {uploadError}
               </p>
-              {uploadErrorType !== 'ocr_failed' && (
+              {uploadErrorType === 'duplicate_bill' && (
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.5rem', marginBottom: 0 }}>
+                  Duplicate uploads are skipped to keep your investment ledger accurate.
+                </p>
+              )}
+              {uploadErrorType !== 'ocr_failed' && uploadErrorType !== 'duplicate_bill' && (
                 <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.5rem', marginBottom: 0, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                   <AlertTriangle size={14} /> Only wholesale/retail stock purchase invoices are stored in your ledger.
                 </p>

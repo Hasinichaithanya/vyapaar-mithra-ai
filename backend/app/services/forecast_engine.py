@@ -1,4 +1,5 @@
 from typing import Dict, Any, List
+from datetime import datetime
 from sqlalchemy.orm import Session
 from ..models import BillItem, InventoryItem, BusinessProfile, LocalityProfile
 
@@ -89,11 +90,13 @@ class ForecastEngine:
                     risk_alerts.append(f"Excess inventory tied up in {item.product_name}.")
 
         return {
+            "id": 1,
+            "created_at": datetime.utcnow(),
             "period": "Next Week",
             "predictions_data": predictions,
             "reorder_suggestions": suggestions,
             "risk_alerts": risk_alerts,
-            "confidence_score": 89.2
+            "confidence_score": 89.2,
         }
 
 

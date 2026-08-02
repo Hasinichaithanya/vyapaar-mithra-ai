@@ -7,7 +7,7 @@ import ShelfScanner from './pages/ShelfScanner';
 import Forecasting from './pages/Forecasting';
 import MarketIntel from './pages/MarketIntel';
 import Assistant from './pages/Assistant';
-import DataStudio from './pages/DataStudio';
+// import DataStudio from './pages/DataStudio';
 import { api } from './api/client';
 import { Menu, Sparkles } from 'lucide-react';
 import './styles/index.css';
@@ -75,7 +75,7 @@ export default function App() {
           {activeTab === 'forecasting' && <Forecasting />}
           {activeTab === 'market' && <MarketIntel />}
           {activeTab === 'assistant' && <Assistant />}
-          {activeTab === 'datastudio' && <DataStudio setActiveTab={setActiveTab} />}
+          {/* {activeTab === 'datastudio' && <DataStudio setActiveTab={setActiveTab} />} */}
         </main>
       </div>
     </div>

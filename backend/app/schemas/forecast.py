@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 
@@ -11,13 +11,13 @@ class ProductForecastItem(BaseModel):
     reasoning: str
 
 class ForecastResponse(BaseModel):
-    id: int
-    created_at: datetime
-    period: str
-    predictions_data: List[ProductForecastItem]
-    reorder_suggestions: List[str]
-    risk_alerts: List[str]
-    confidence_score: float
+    id: int = 1
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    period: str = "Next Week"
+    predictions_data: List[ProductForecastItem] = []
+    reorder_suggestions: List[str] = []
+    risk_alerts: List[str] = []
+    confidence_score: float = 0.0
 
     class Config:
         from_attributes = True

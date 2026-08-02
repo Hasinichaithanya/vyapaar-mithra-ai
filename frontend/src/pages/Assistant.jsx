@@ -7,8 +7,8 @@ import {
   Sparkles, 
   Mic, 
   MicOff, 
-  Volume2, 
-  VolumeX,
+  // Volume2, 
+  // VolumeX,
   Globe2, 
   CheckCircle2, 
   ArrowRight 
@@ -30,7 +30,7 @@ export default function Assistant() {
   const [inputMsg, setInputMsg] = useState('');
   const [sending, setSending] = useState(false);
   const [isListening, setIsListening] = useState(false);
-  const [speakingId, setSpeakingId] = useState(null);
+  // const [speakingId, setSpeakingId] = useState(null);
   const chatEndRef = useRef(null);
   const recognitionRef = useRef(null);
 
@@ -60,12 +60,12 @@ export default function Assistant() {
     scrollToBottom();
   }, [messages]);
 
-  // Clean up speech synthesis & recognition on unmount
+  // Clean up speech recognition on unmount
   useEffect(() => {
     return () => {
-      if (window.speechSynthesis) {
-        window.speechSynthesis.cancel();
-      }
+      // if (window.speechSynthesis) {
+      //   window.speechSynthesis.cancel();
+      // }
       stopVoiceInput();
     };
   }, []);
@@ -137,71 +137,70 @@ export default function Assistant() {
   };
 
   // Build complete text string for Text-to-Speech (Analysis + Reasons + Recommendations)
-  const getCompleteSpeechText = (msg) => {
-    const parts = [];
-    if (msg.analysis || msg.message) {
-      parts.push(msg.analysis || msg.message);
-    }
-    if (msg.reasons && msg.reasons.length > 0) {
-      const reasonsHeader = selectedLang === 'te' ? 'కారణాలు. ' : 'Key factors. ';
-      parts.push(reasonsHeader + msg.reasons.join('. '));
-    }
-    if (msg.recommendations && msg.recommendations.length > 0) {
-      const recsHeader = selectedLang === 'te' ? 'సిఫార్సులు. ' : 'Recommendations. ';
-      parts.push(recsHeader + msg.recommendations.join('. '));
-    }
-    return parts.join('. ').replace(/\*\*/g, '').replace(/\*/g, '');
-  };
+  // const getCompleteSpeechText = (msg) => {
+  //   const parts = [];
+  //   if (msg.analysis || msg.message) {
+  //     parts.push(msg.analysis || msg.message);
+  //   }
+  //   if (msg.reasons && msg.reasons.length > 0) {
+  //     const reasonsHeader = selectedLang === 'te' ? 'కారణాలు. ' : 'Key factors. ';
+  //     parts.push(reasonsHeader + msg.reasons.join('. '));
+  //   }
+  //   if (msg.recommendations && msg.recommendations.length > 0) {
+  //     const recsHeader = selectedLang === 'te' ? 'సిఫార్సులు. ' : 'Recommendations. ';
+  //     parts.push(recsHeader + msg.recommendations.join('. '));
+  //   }
+  //   return parts.join('. ').replace(/\*\*/g, '').replace(/\*/g, '');
+  // };
 
   // Text to Speech (Read Aloud Complete Response without Cutoff)
-  const handleReadAloud = (msgId, msgObj) => {
-    if (!window.speechSynthesis) return;
-
-    if (speakingId === msgId) {
-      window.speechSynthesis.cancel();
-      setSpeakingId(null);
-      return;
-    }
-
-    window.speechSynthesis.cancel();
-
-    const fullText = getCompleteSpeechText(msgObj);
-    // Split full text into sentence chunks so speech synthesis never truncates long text
-    const sentences = fullText.match(/[^.!?]+[.!?]+/g) || [fullText];
-    let sentenceIndex = 0;
-
-    const speakNext = () => {
-      if (sentenceIndex >= sentences.length) {
-        setSpeakingId(null);
-        return;
-      }
-
-      const chunk = sentences[sentenceIndex].trim();
-      if (!chunk) {
-        sentenceIndex++;
-        speakNext();
-        return;
-      }
-
-      const utterance = new SpeechSynthesisUtterance(chunk);
-      utterance.lang = selectedLang === 'te' ? 'te-IN' : 'en-IN';
-      utterance.rate = 0.95;
-
-      utterance.onend = () => {
-        sentenceIndex++;
-        speakNext();
-      };
-
-      utterance.onerror = () => {
-        setSpeakingId(null);
-      };
-
-      window.speechSynthesis.speak(utterance);
-    };
-
-    setSpeakingId(msgId);
-    speakNext();
-  };
+  // const handleReadAloud = (msgId, msgObj) => {
+  //   if (!window.speechSynthesis) return;
+  //
+  //   if (speakingId === msgId) {
+  //     window.speechSynthesis.cancel();
+  //     setSpeakingId(null);
+  //     return;
+  //   }
+  //
+  //   window.speechSynthesis.cancel();
+  //
+  //   const fullText = getCompleteSpeechText(msgObj);
+  //   const sentences = fullText.match(/[^.!?]+[.!?]+/g) || [fullText];
+  //   let sentenceIndex = 0;
+  //
+  //   const speakNext = () => {
+  //     if (sentenceIndex >= sentences.length) {
+  //       setSpeakingId(null);
+  //       return;
+  //     }
+  //
+  //     const chunk = sentences[sentenceIndex].trim();
+  //     if (!chunk) {
+  //       sentenceIndex++;
+  //       speakNext();
+  //       return;
+  //     }
+  //
+  //     const utterance = new SpeechSynthesisUtterance(chunk);
+  //     utterance.lang = selectedLang === 'te' ? 'te-IN' : 'en-IN';
+  //     utterance.rate = 0.95;
+  //
+  //     utterance.onend = () => {
+  //       sentenceIndex++;
+  //       speakNext();
+  //     };
+  //
+  //     utterance.onerror = () => {
+  //       setSpeakingId(null);
+  //     };
+  //
+  //     window.speechSynthesis.speak(utterance);
+  //   };
+  //
+  //   setSpeakingId(msgId);
+  //   speakNext();
+  // };
 
   // Handle Send User Message (Clears input field unconditionally)
   const handleSend = async (queryText) => {
@@ -300,7 +299,7 @@ export default function Assistant() {
         <div className="chat-history">
           {messages.map((msg, idx) => {
             const currentMsgId = msg.id || idx;
-            const isSpeakingThis = speakingId === currentMsgId;
+            // const isSpeakingThis = speakingId === currentMsgId;
 
             return (
               <div 
@@ -317,7 +316,7 @@ export default function Assistant() {
                   </div>
 
                   {/* Read Aloud TTS button for assistant responses */}
-                  {msg.sender === 'assistant' && (
+                  {/* {msg.sender === 'assistant' && (
                     <button 
                       onClick={() => handleReadAloud(currentMsgId, msg)}
                       style={{ 
@@ -338,7 +337,7 @@ export default function Assistant() {
                       {isSpeakingThis ? <VolumeX size={15} className="animate-pulse" /> : <Volume2 size={15} />}
                       <span>{isSpeakingThis ? (selectedLang === 'te' ? 'ఆపు...' : 'Stop') : (selectedLang === 'te' ? 'వినండి' : 'Listen')}</span>
                     </button>
-                  )}
+                  )} */}
                 </div>
 
                 {/* Main Analysis */}
