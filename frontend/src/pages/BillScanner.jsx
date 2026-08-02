@@ -1,12 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api/client';
-import { Upload, Receipt, FileText, CheckCircle, IndianRupee, Sparkles, RefreshCw } from 'lucide-react';
+import { Upload, Receipt, FileText, CheckCircle, IndianRupee, RefreshCw, Clock, AlertTriangle, XCircle } from 'lucide-react';
+
+const RECENT_BILLS_LIMIT = 5;
+
+function formatBillDate(bill) {
+  if (bill.created_at) {
+    return new Date(bill.created_at).toLocaleDateString('en-IN', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
+  }
+  return bill.purchase_date || '—';
+}
 
 export default function BillScanner() {
   const [bills, setBills] = useState([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [latestScannedBill, setLatestScannedBill] = useState(null);
+  const [uploadError, setUploadError] = useState(null);
+  const [uploadErrorType, setUploadErrorType] = useState(null);
 
   const loadLedger = async () => {
     setLoading(true);
@@ -29,21 +44,26 @@ export default function BillScanner() {
     if (!file) return;
 
     setUploading(true);
+    setUploadError(null);
+    setUploadErrorType(null);
+    setLatestScannedBill(null);
     try {
       const result = await api.scanBill(file);
       setLatestScannedBill(result);
       await loadLedger();
     } catch (err) {
       console.error(err);
-      alert('Failed to process bill image via AI Vision');
+      setUploadError(err.message || 'Failed to process bill image via AI Vision');
+      setUploadErrorType(err.errorType || (err.status === 503 ? 'ocr_failed' : 'non_business_document'));
     } finally {
       setUploading(false);
+      e.target.value = '';
     }
   };
 
   const totalInvestment = bills.reduce((acc, b) => acc + (b.total_amount || 0), 0);
+  const recentBills = bills.slice(0, RECENT_BILLS_LIMIT);
 
-  // Group items by category
   const categoryTotals = {};
   bills.forEach(b => {
     b.items?.forEach(i => {
@@ -58,6 +78,48 @@ export default function BillScanner() {
         <p className="section-subtitle">Digitize purchase invoices automatically using Gemini Vision AI OCR</p>
       </div>
 
+      {/* Recent Bills — shown at the top */}
+      <div className="glass-card" style={{ padding: '1.75rem', marginBottom: '1.75rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+          <h2 style={{ fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
+            <Clock size={20} color="var(--primary)" /> Recent Bills
+          </h2>
+          <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+            {bills.length} total · newest first
+          </span>
+        </div>
+
+        {loading ? (
+          <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+            <RefreshCw className="animate-spin" size={22} style={{ margin: '0 auto 0.5rem' }} />
+            Loading recent bills...
+          </div>
+        ) : recentBills.length === 0 ? (
+          <p style={{ color: 'var(--text-muted)', margin: 0 }}>
+            No bills yet. Upload your first wholesale or retail purchase invoice below.
+          </p>
+        ) : (
+          <div className="recent-bills-grid">
+            {recentBills.map((bill, index) => (
+              <div
+                key={bill.id}
+                className={`recent-bill-card${index === 0 ? ' recent-bill-card-latest' : ''}`}
+              >
+                {index === 0 && (
+                  <span className="recent-bill-badge">Latest</span>
+                )}
+                <div className="recent-bill-supplier">{bill.supplier_name}</div>
+                <div className="recent-bill-meta">
+                  <span>{formatBillDate(bill)}</span>
+                  <span>{bill.items?.length || 0} items</span>
+                </div>
+                <div className="recent-bill-amount">₹{bill.total_amount?.toLocaleString()}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       <div className="grid-2" style={{ marginBottom: '2rem' }}>
         {/* Upload Zone */}
         <div className="glass-card" style={{ padding: '1.75rem' }}>
@@ -66,11 +128,11 @@ export default function BillScanner() {
           </h2>
 
           <label className="upload-zone" style={{ display: 'block' }}>
-            <input 
-              type="file" 
-              accept="image/*" 
-              onChange={handleFileUpload} 
-              style={{ display: 'none' }} 
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleFileUpload}
+              style={{ display: 'none' }}
               disabled={uploading}
             />
             <div className="upload-icon">
@@ -80,11 +142,28 @@ export default function BillScanner() {
               {uploading ? 'Extracting OCR Fields with Gemini AI...' : 'Click or Drop Bill Receipt Image'}
             </h3>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-              Supports JPG, PNG, WEBP invoices. Automatically extracts Supplier, Date, Items & Cost Prices.
+              Business inventory purchase bills only. Hospital bills, school fees, and utility bills are rejected.
             </p>
           </label>
 
-          {latestScannedBill && (
+          {uploadError && (
+            <div className={uploadErrorType === 'ocr_failed' ? 'bill-upload-warning' : 'bill-upload-error'}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600, fontSize: '0.9rem' }}>
+                {uploadErrorType === 'ocr_failed' ? <AlertTriangle size={18} /> : <XCircle size={18} />}
+                {uploadErrorType === 'ocr_failed' ? 'Could Not Read Bill' : 'Document Rejected'}
+              </div>
+              <p style={{ fontSize: '0.85rem', marginTop: '0.4rem', marginBottom: 0, lineHeight: 1.5 }}>
+                {uploadError}
+              </p>
+              {uploadErrorType !== 'ocr_failed' && (
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.5rem', marginBottom: 0, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <AlertTriangle size={14} /> Only wholesale/retail stock purchase invoices are stored in your ledger.
+                </p>
+              )}
+            </div>
+          )}
+
+          {latestScannedBill && !uploadError && (
             <div style={{ marginTop: '1.25rem', padding: '1rem', background: 'rgba(16, 185, 129, 0.1)', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--accent)', fontWeight: 600, fontSize: '0.9rem' }}>
                 <CheckCircle size={18} /> Successfully Digitized Bill!
@@ -122,10 +201,10 @@ export default function BillScanner() {
         </div>
       </div>
 
-      {/* Bill History Table */}
+      {/* Full Bill History */}
       <div className="glass-card" style={{ padding: '1.75rem' }}>
         <h2 style={{ fontSize: '1.2rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <FileText size={20} color="var(--secondary)" /> Digitized Investment Receipts & Items
+          <FileText size={20} color="var(--secondary)" /> All Digitized Investment Receipts
         </h2>
 
         {bills.length === 0 ? (
@@ -136,7 +215,7 @@ export default function BillScanner() {
               <div style={{ padding: '1rem 1.25rem', background: 'rgba(11, 15, 25, 0.6)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                   <strong style={{ fontSize: '1.05rem' }}>{bill.supplier_name}</strong>
-                  <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginLeft: '1rem' }}>Date: {bill.purchase_date}</span>
+                  <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginLeft: '1rem' }}>Date: {formatBillDate(bill)}</span>
                 </div>
                 <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--primary)' }}>
                   Total: ₹{bill.total_amount?.toLocaleString()}

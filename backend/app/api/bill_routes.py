@@ -27,6 +27,33 @@ async def scan_bill_image(file: UploadFile = File(...), db: Session = Depends(ge
     # Perform Gemini OCR Extraction
     extracted = ai_service.scan_bill_image(filepath)
 
+    if extracted.get("ocr_error"):
+        os.remove(filepath)
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "error": "ocr_failed",
+                "message": extracted.get("message") or (
+                    "Could not read this bill image. Please upload a clear, well-lit photo of your "
+                    "wholesale or retail purchase invoice and try again."
+                ),
+            },
+        )
+
+    is_valid, rejection_message = ai_service.validate_business_bill(extracted)
+    if not is_valid:
+        os.remove(filepath)
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": "non_business_document",
+                "message": rejection_message or (
+                    "The uploaded document does not appear to be a business-related inventory purchase bill. "
+                    "Hospital bills, school fees, utility bills, and other unrelated documents are not allowed."
+                ),
+            },
+        )
+
     bill = Bill(
         supplier_name=extracted.get("supplier_name", "Metro Cash & Carry"),
         purchase_date=extracted.get("purchase_date", "2026-08-01"),
@@ -67,10 +94,10 @@ async def scan_bill_image(file: UploadFile = File(...), db: Session = Depends(ge
 @router.get("/ledger", response_model=List[BillResponse])
 def get_investment_ledger(db: Session = Depends(get_db)):
     """
-    Get all recorded purchase bills and items.
+    Get all recorded purchase bills and items, most recent first.
     If none exist yet, automatically populates sample ledger matching PRD.
     """
-    bills = db.query(Bill).all()
+    bills = db.query(Bill).order_by(Bill.created_at.desc(), Bill.id.desc()).all()
     if not bills:
         # Create default sample bill matching PRD section 5.2 (Total Investment: ₹48,000)
         sample_extracted = ai_service.scan_bill_image("")
@@ -84,7 +111,7 @@ def get_investment_ledger(db: Session = Depends(get_db)):
         db.commit()
         db.refresh(sample_bill)
 
-        for item in sample_extracted["items"]:
+        for item in sample_extracted.get("items", []):
             b_item = BillItem(
                 bill_id=sample_bill.id,
                 product_name=item["product_name"],

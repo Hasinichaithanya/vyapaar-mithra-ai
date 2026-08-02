@@ -4,6 +4,7 @@ from datetime import datetime
 
 class ChatRequest(BaseModel):
     message: str
+    language: Optional[str] = "en"
 
 class ChatResponse(BaseModel):
     id: Optional[int] = None
